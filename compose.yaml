@@ -1,0 +1,7 @@
+﻿services:
+  sap-adrestolatlong:
+    image: sap-adrestolatlong
+    build:
+      context: .
+      dockerfile: Dockerfile
+

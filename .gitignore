@@ -210,3 +210,6 @@ FakesAssemblies/
 # JetBrains Rider
 *.sln.iml
 .idea/*
+/secrets/
+/todo.cs
+todo.md

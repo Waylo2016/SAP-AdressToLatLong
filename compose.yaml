@@ -1,7 +1,89 @@
-﻿services:
-  sap-adrestolatlong:
-    image: sap-adrestolatlong
+﻿name: sap-adrestolatlong
+
+services:
+  geocoder:
+    container_name: sap-geocoder
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: geocoder_db
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      SAP_REST_API: ${SAP_REST_CLIENT}
+      SAP_USERNAME_FILE: /run/secrets/sap_username
+      SAP_PASSWORD_FILE: /run/secrets/sap_password
+      GEOCODING_API_FILE: /run/secrets/geocoding_api
+    secrets:
+      - postgres_user
+      - postgres_password
+      - sap_username
+      - sap_password
+      - geocoding_api
+    ports:
+      - "8080:8080"
+    networks:
+      - sap-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+  postgres:
+    image: postgres:latest
+    container_name: sap-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: geocoder_db
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    secrets:
+      - postgres_user
+      - postgres_password
+    ports:
+      - "5432:5432"
+    networks:
+      - sap-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U \"$$(cat /run/secrets/postgres_user)\" -d geocoder_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: sap-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8082:80"
+    networks:
+      - sap-network
+    depends_on:
+      postgres:
+        condition: service_healthy
 
+secrets:
+  postgres_user:
+    file: ./secrets/postgres_user.txt
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  sap_username:
+    file: ./secrets/sap_username.txt
+  sap_password:
+    file: ./secrets/sap_password.txt
+  geocoding_api:
+    file: ./secrets/geocoding_api.txt
+
+volumes:
+  postgres-data:
+
+
+networks:
+  sap-network:
+    driver: bridge

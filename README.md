@@ -12,6 +12,7 @@ SAP B1 utility to transform SAP addresses into Latitude and Longitude coordinate
 - [Docker](https://www.docker.com/products/docker-desktop/) 
 - [OpenSSL](https://www.openssl.org/) (required by `deploy.sh` for secret generation)
 - Google Geocoding API Key
+- And quite obviously, a SAP Business One server that has a working Service Layer
 
 ## Getting Started
 

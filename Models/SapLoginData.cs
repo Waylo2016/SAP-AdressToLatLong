@@ -2,6 +2,6 @@
 
 public class SapLoginData
 {
-    public string RouteID { get; set; }
-    public string B1SessionId { get; set; }
+    public string ROUTEID { get; set; }
+    public string B1SESSION { get; set; }
 }

@@ -1,4 +1,5 @@
-﻿using System.Net.Security;
+﻿using System.Net;
+using System.Net.Security;
 using Newtonsoft.Json;
 using SAP_AdresToLatLong.Interfaces;
 using SAP_AdresToLatLong.Models;
@@ -8,9 +9,10 @@ namespace SAP_AdresToLatLong.Services;
 public class SapFunctions : ISapFunctions
 {
     private readonly HttpClient _httpClient;
+    private readonly HttpClientHandler _httpClientHandler;
     public SapFunctions()
     {
-        var handler = new HttpClientHandler
+        _httpClientHandler = new HttpClientHandler
         {
             
             // Doing this yucky ew thing because the server I (waylo) am using 
@@ -28,7 +30,7 @@ public class SapFunctions : ISapFunctions
             }
         };
         
-        _httpClient = new HttpClient(handler);
+        _httpClient = new HttpClient(_httpClientHandler);
     }
 
     private string? _sapRestApiBaseUrl()
@@ -40,24 +42,31 @@ public class SapFunctions : ISapFunctions
     }
     
     
-    public List<SapLoginData>? LoginSAPRestApi(string username, string password, string companyDatabase)
+    public SapLoginData LoginSAPRestApi(string username, string password, string companyDatabase)
     {
         string loginUrl = $"{_sapRestApiBaseUrl()}/Login";
         
-        var request = new HttpRequestMessage(HttpMethod.Post, loginUrl);
-        var content = new StringContent($"{{\"CompanyDB\": \"{companyDatabase}\", \"UserName\": \"{username}\", \"Password\": \"{password}\"}}",
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, loginUrl);
+        StringContent content = new StringContent($"{{\"CompanyDB\": \"{companyDatabase}\", \"UserName\": \"{username}\", \"Password\": \"{password}\"}}",
             null,
             "application/json");
         
         request.Content = content;
         
-        var response = _httpClient.SendAsync(request).Result;
+        HttpResponseMessage response = _httpClient.SendAsync(request).Result;
         response.EnsureSuccessStatusCode();
-        
+
         Console.WriteLine(response.Content.ReadAsStringAsync().Result);
-        
-        // return JsonConvert.DeserializeObject<List<SapLoginData>>(response.Content.ReadAsStringAsync().Result);
-        return null;
+        Console.WriteLine(response.StatusCode);
+        // check the returned cookies from the server
+        CookieCollection cookies = _httpClientHandler.CookieContainer.GetCookies(new Uri(_sapRestApiBaseUrl()));
+        SapLoginData loginData = new SapLoginData
+        {
+            ROUTEID = cookies["ROUTEID"]?.Value,
+            B1SESSION = cookies["B1SESSION"]?.Value
+        };
+
+        return loginData;
     }
 
     public List<SAPData>? GetCustomerAddresses(string username, string password, string companyDatabase, SapLoginData loginData)

@@ -1,6 +1,7 @@
 ﻿# SAP-AdresToLatLong
 
-SAP B1 utility to transform SAP addresses into Latitude and Longitude coordinates using the Google Geocoding API.
+SAP B1 utility to transform SAP addresses into Latitude and Longitude coordinates using the Google Geocoding API. 
+This program utilizes the SAP Service Layer, and the V2 architecture of the SAP B1 API.
 
 ## Features
 - Fetches addresses from SAP Business One and processes them.
@@ -42,30 +43,31 @@ The `deploy.sh` script is designed to automate the setup of sensitive informatio
 ### 3. Secret Management
 This project uses **Docker Secrets** for production-grade security. 
 
-| Secret File | Source | Description |
-|:---|:---|:---|
-| `postgres_user.txt` | Generated | Randomly generated username for the internal DB. |
-| `postgres_password.txt` | Generated | Randomly generated password for the internal DB. |
-| `sap_username.txt` | User Provided | Your SAP Business One Service Layer username. |
-| `sap_password.txt` | User Provided | Your SAP Business One Service Layer password. |
-| `geocoding_api.txt` | User Provided | Your Google Geocoding API Key. |
+| Secret File             | Source        | Description                                      |
+|:------------------------|:--------------|:-------------------------------------------------|
+| `postgres_user.txt`     | Generated     | Randomly generated username for the internal DB. |
+| `postgres_password.txt` | Generated     | Randomly generated password for the internal DB. |
+| `sap_username.txt`      | User Provided | Your SAP Business One Service Layer username.    |
+| `sap_password.txt`      | User Provided | Your SAP Business One Service Layer password.    |
+| `geocoding_api.txt`     | User Provided | Your Google Geocoding API Key.                   |
 
-> **Note:** The `secrets/` folder is ignored by Git. Never commit these files.
+> **Note:** The `secrets/` folder is ignored by Git. Never commit these files if you are helping development.
 
 ### 4. Configuration
 The application is primarily configured via environment variables. For convenience, a `.env.example` file is provided, pre-loaded with default values for a standard setup (e.g., database names, ports, and internal file paths).
 
-| Variable | Description |
-|:---|:---|
-| `SAP_REST_CLIENT` | **Required.** The SAP Service Layer base URL (e.g., `https://sap-server:50000/b1s/v1`). |
-| `POSTGRES_HOST` | Hostname of the PostgreSQL service (default: `postgres` for Docker, `localhost` for local dev). |
-| `POSTGRES_PORT` | Port of the PostgreSQL service (default: `5432`). |
-| `POSTGRES_DB` | Name of the database (default: `geocoder_db`). |
-| `SAP_REST_USERNAME` | Placeholder for SAP REST username if not using secrets. |
-| `SAP_REST_PASSWORD` | Placeholder for SAP REST password if not using secrets. |
-| `GEOCODING_API` | Placeholder for Google API Key if not using secrets. |
-| `POSTGRES_USER_FILE` | Path to the secret file containing the DB username. |
-| `POSTGRES_PASSWORD_FILE` | Path to the secret file containing the DB password. |
+| Variable                 | Description                                                                                                                                                                  |
+|:-------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `SAP_REST_CLIENT`        | **Required.** The SAP Service Layer base URL (e.g., `sap-server:50000`). As you can see, there's no need to append a http(s) to the URL, the program does this automatically |
+| `SAP_SERVER`             | **Required.** The database used for SAP, known as the CompanyDB in SAP                                                                                                       |
+| `POSTGRES_HOST`          | Hostname of the PostgreSQL service (default: `postgres` for Docker, `localhost` for local dev).                                                                              |
+| `POSTGRES_PORT`          | Port of the PostgreSQL service (default: `5432`).                                                                                                                            |
+| `POSTGRES_DB`            | Name of the database (default: `geocoder_db`).                                                                                                                               |
+| `SAP_REST_USERNAME`      | Path to the secret file containing the SAP username.                                                                                                                         |
+| `SAP_REST_PASSWORD`      | Path to the secret file containing the SAP password.                                                                                                                         |
+| `GEOCODING_API`          | **Required.** API Key for the Google Maps Geocoding API                                                                                                                      |
+| `POSTGRES_USER_FILE`     | Path to the secret file containing the DB username.                                                                                                                          |
+| `POSTGRES_PASSWORD_FILE` | Path to the secret file containing the DB password.                                                                                                                          |
 
 To use these, copy `.env.example` to `.env` and adjust as needed. Note that `deploy.sh` and `compose.yaml` prioritize Docker Secrets for sensitive credentials.
 

@@ -40,28 +40,28 @@ public class SecretParser
         return $"Host={host};Port={port};Database={db};Username={user};Password={password}";
     }
 
-    public static string SapRestApi()
+    public static string GetSapRestApi()
     {
         var sapRestApi = GetRequiredConfig(configuration, "SAP_REST_API");
         
         return sapRestApi;
     }
     
-    public static string GeocodingApi()
+    public static string GetGeocodingApi()
     {
         var geocodingApi = GetRequiredConfig(configuration, "GEOCODING_API_FILE");
         
         return geocodingApi;
     }
     
-    public static string SapUsername()
+    public static string GetUsername()
     {
-        return GetRequiredSecretFromFile(configuration, "SAP_USERNAME_FILE");
+        return GetRequiredSecretFromFile(configuration, "SAP_REST_USERNAME_FILE");
     }
     
-    public static string SapPassword()
+    public static string GetPassword()
     {
-        return GetRequiredSecretFromFile(configuration, "SAP_PASSWORD_FILE");
+        return GetRequiredSecretFromFile(configuration, "SAP_REST_PASSWORD_FILE");
     }
     
     

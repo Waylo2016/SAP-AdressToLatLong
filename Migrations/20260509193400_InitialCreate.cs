@@ -17,7 +17,7 @@ namespace SAP_AdresToLatLong.Migrations
                 {
                     DocNum = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CardCode = table.Column<int>(type: "integer", nullable: false),
+                    CardCode = table.Column<string>(type: "text", nullable: false),
                     BillToAddress = table.Column<string>(type: "text", nullable: false),
                     SendToAddress = table.Column<string>(type: "text", nullable: false)
                 },
@@ -31,7 +31,7 @@ namespace SAP_AdresToLatLong.Migrations
                 columns: table => new
                 {
                     DocNum = table.Column<int>(type: "integer", nullable: false),
-                    CardCode = table.Column<int>(type: "integer", nullable: false),
+                    CardCode = table.Column<string>(type: "text", nullable: false),
                     Latitude = table.Column<decimal>(type: "numeric(9,6)", nullable: false),
                     Longitude = table.Column<decimal>(type: "numeric(10,6)", nullable: false)
                 },

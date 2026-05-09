@@ -6,9 +6,7 @@ namespace SAP_AdresToLatLong.Interfaces;
 public interface IGoogleFunctions
 {
         
-        public bool CheckIfGeocodeDataExists (int docNum, int cardCode);
-        
-        public List<PostGeocodeData> GetGeocodeData (string address, int docNum, int cardCode);
-        
-        public void SaveGeocodeData (PostGeocodeData postGeocodeData, ApplicationDbContext context);
+        Task<PostGeocodeData?> GetGeocodeDataAsync(SAPData sapData, ApplicationDbContext context);
+        Task SaveGeocodeDataAsync(PostGeocodeData postGeocodeData, ApplicationDbContext context);
+        bool CheckIfGeocodeDataExists(int docNum, string cardCode, ApplicationDbContext context);
 }

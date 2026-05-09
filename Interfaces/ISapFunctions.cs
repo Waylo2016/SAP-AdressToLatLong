@@ -1,12 +1,15 @@
-﻿using SAP_AdresToLatLong.Models;
+﻿using SAP_AdresToLatLong.Data;
+using SAP_AdresToLatLong.Models;
 
 namespace SAP_AdresToLatLong.Interfaces;
 
 public interface ISapFunctions
 {
-    public SapLoginData LoginSAPRestApi(string username, string password, string companyDatabase);
+    public SapCookieData LoginSAPRestApi(SapLoginData loginData);
     
-    public List<SAPData>? GetCustomerAddresses(string username, string password, string companyDatabase, SapLoginData loginData);
+    public List<SAPData> GetCustomerAddresses(SapLoginData loginData, SapCookieData cookieData);
     
-    public void LogoutSAPRestApi(string sessionId);
+    public void SaveCustomerAddresses(List<SAPData> sapDataList, ApplicationDbContext context);
+    
+    public void LogoutSAPRestApi(SapCookieData cookieData);
 }

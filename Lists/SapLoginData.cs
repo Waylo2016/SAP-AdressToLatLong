@@ -2,6 +2,7 @@
 
 public class SapLoginData
 {
-    public string ROUTEID { get; set; }
-    public string B1SESSION { get; set; }
+    public string CompanyDB { get; set; }
+    public string UserName { get; set; }
+    public string Password { get; set; }
 }

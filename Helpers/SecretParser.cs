@@ -6,20 +6,23 @@ public class SecretParser
 {
     private static IConfiguration configuration;
     
+    private static string? _envDirectory;
+
     static SecretParser()
     {
-        var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+        string envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env");
         if (File.Exists(envFile))
         {
-            foreach (var line in File.ReadAllLines(envFile))
+            foreach (string line in File.ReadAllLines(envFile))
             {
-                var trimmed = line.Trim();
+                string trimmed = line.Trim();
                 if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#')) continue;
-                var idx = trimmed.IndexOf('=');
+                int idx = trimmed.IndexOf('=');
                 if (idx < 0) continue;
-                var key = trimmed[..idx].Trim();
-                var value = trimmed[(idx + 1)..].Trim();
-                Environment.SetEnvironmentVariable(key, value);
+                string key = trimmed[..idx].Trim();
+                string value = trimmed[(idx + 1)..].Trim();
+                if (Environment.GetEnvironmentVariable(key) == null)
+                    Environment.SetEnvironmentVariable(key, value);
             }
         }
         
@@ -31,25 +34,19 @@ public class SecretParser
     public static string Build()
     {
         
-        var host = GetRequiredConfig(configuration, "POSTGRES_HOST");
-        var port = GetRequiredConfig(configuration, "POSTGRES_PORT");
-        var db = GetRequiredConfig(configuration, "POSTGRES_DB");
-        var user = GetRequiredSecretFromFile(configuration, "POSTGRES_USER_FILE");
-        var password = GetRequiredSecretFromFile(configuration, "POSTGRES_PASSWORD_FILE");
+        string host = GetRequiredConfig(configuration, "POSTGRES_HOST");
+        string port = GetRequiredConfig(configuration, "POSTGRES_PORT");
+        string db = GetRequiredConfig(configuration, "POSTGRES_DB");
+        string user = GetRequiredSecretFromFile(configuration, "POSTGRES_USER_FILE");
+        string password = GetRequiredSecretFromFile(configuration, "POSTGRES_PASSWORD_FILE");
 
         return $"Host={host};Port={port};Database={db};Username={user};Password={password}";
     }
-
-    public static string GetSapRestApi()
-    {
-        var sapRestApi = GetRequiredConfig(configuration, "SAP_REST_API");
-        
-        return sapRestApi;
-    }
+    
     
     public static string GetGeocodingApi()
     {
-        var geocodingApi = GetRequiredConfig(configuration, "GEOCODING_API_FILE");
+        string geocodingApi = GetRequiredConfig(configuration, "GEOCODING_API");
         
         return geocodingApi;
     }
@@ -68,7 +65,7 @@ public class SecretParser
     
     static string GetRequiredConfig(IConfiguration configuration, string key)
     {
-        var value = configuration[key];
+        string? value = configuration[key];
 
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -80,14 +77,19 @@ public class SecretParser
 
     static string GetRequiredSecretFromFile(IConfiguration configuration, string key)
     {
-        var path = GetRequiredConfig(configuration, key);
+        string path = GetRequiredConfig(configuration, key);
+
+        if (!Path.IsPathRooted(path) && _envDirectory != null)
+        {
+            path = Path.GetFullPath(Path.Combine(_envDirectory, path));
+        }
 
         if (!File.Exists(path))
         {
             throw new InvalidOperationException($"Secret file does not exist for '{key}': {path}");
         }
 
-        var value = File.ReadAllText(path).Trim();
+        string value = File.ReadAllText(path).Trim();
 
         if (string.IsNullOrWhiteSpace(value))
         {

@@ -11,7 +11,7 @@ using SAP_AdresToLatLong.Data;
 namespace SAP_AdresToLatLong.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260508204851_InitialCreate")]
+    [Migration("20260509193400_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -29,8 +29,9 @@ namespace SAP_AdresToLatLong.Migrations
                     b.Property<int>("DocNum")
                         .HasColumnType("integer");
 
-                    b.Property<int>("CardCode")
-                        .HasColumnType("integer");
+                    b.Property<string>("CardCode")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<decimal>("Latitude")
                         .HasColumnType("decimal(9, 6)");
@@ -55,8 +56,9 @@ namespace SAP_AdresToLatLong.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("CardCode")
-                        .HasColumnType("integer");
+                    b.Property<string>("CardCode")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("SendToAddress")
                         .IsRequired()

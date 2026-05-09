@@ -7,9 +7,11 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <Optimize>false</Optimize>
     </PropertyGroup>
 
     <ItemGroup>
+      <Folder Include="Migrations\" />
       <Folder Include="secrets\" />
     </ItemGroup>
 
@@ -28,7 +30,6 @@
       <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
       <PackageReference Include="Npgsql" Version="10.0.2" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
-      <PackageReference Include="System.Text.Json" Version="10.0.7" />
       <PackageReference Include="Toolbelt.EntityFrameworkCore.DecimalAttribute" Version="5.0.1.3" />
     </ItemGroup>
 

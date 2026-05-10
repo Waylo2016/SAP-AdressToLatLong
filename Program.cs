@@ -54,12 +54,12 @@ class Program
             var geocodeResult = await googleFunctions.GetGeocodeDataAsync(sapItem, dbContext);
 
             Console.WriteLine($"Geocode for DocNum: {sapItem.DocNum} completed: {geocodeResult.Latitude.ToString()}, {geocodeResult.Longitude.ToString()}");
-            // if (geocodeResult != null)
-            // {
-            //     // 3. Save result
-            //     await googleFunctions.SaveGeocodeDataAsync(geocodeResult, dbContext);
-            //     Console.WriteLine($"Saved geocode for DocNum: {sapItem.DocNum}");
-            // }
+            if (geocodeResult != null)
+            {
+                // 3. Save result
+                await googleFunctions.SaveGeocodeDataAsync(geocodeResult, dbContext);
+                Console.WriteLine($"Saved geocode for DocNum: {sapItem.DocNum}");
+            }
             
         }
         

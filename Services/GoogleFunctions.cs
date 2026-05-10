@@ -52,7 +52,11 @@ public class GoogleFunctions : IGoogleFunctions
 
     public async Task SaveGeocodeDataAsync(PostGeocodeData postGeocodeData, ApplicationDbContext context)
     {
-        throw new NotImplementedException();
+        if (!CheckIfGeocodeDataExists(postGeocodeData.DocNum, postGeocodeData.CardCode, context))
+        {
+            context.PostGeocodeData.Add(postGeocodeData);
+            await context.SaveChangesAsync();
+        }
     }
     
     private string BuildGoogleApiUrl(int docNum, ApplicationDbContext context)

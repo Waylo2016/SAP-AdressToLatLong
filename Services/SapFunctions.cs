@@ -11,12 +11,14 @@ public class SapFunctions : ISapFunctions
 {
     private readonly HttpClient _httpClient;
     private readonly HttpClientHandler _httpClientHandler;
-    
+    private readonly string _sapRestApiVersion = "v2"; // change when using an updated SAP Service Layer
+    private readonly int _oDataPagination = 100; // change this for more or less data per request on bulk import
+
     public SapFunctions()
     {
         _httpClientHandler = new HttpClientHandler
         {
-            
+
             // Doing this yucky ew thing because the server I (waylo) am using. It'll be deleted when the company I work for has a proper CA
             ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
             {
@@ -31,43 +33,45 @@ public class SapFunctions : ISapFunctions
                 return string.Equals(requestHost, expectedHost, StringComparison.OrdinalIgnoreCase);
             }
         };
-        
+
         _httpClient = new HttpClient(_httpClientHandler);
     }
 
     private string _sapRestApiBaseUrl()
     {
         string? baseUrl = Environment.GetEnvironmentVariable("SAP_REST_CLIENT");
-        
-        string sapRestApiBaseUrl = $"https://{baseUrl}/b1s/v2/";
+
+        string sapRestApiBaseUrl = $"https://{baseUrl}/b1s/{_sapRestApiVersion}/";
         return sapRestApiBaseUrl;
     }
-    
-    
+
+
     public SapCookieData LoginSAPRestApi(SapLoginData loginData)
     {
         try
         {
             string loginUrl = $"{_sapRestApiBaseUrl()}/Login";
-        
+
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, loginUrl);
-            StringContent content = new StringContent($"{{\"CompanyDB\": \"{loginData.CompanyDB}\", \"UserName\": \"{loginData.UserName}\", \"Password\": \"{loginData.Password}\"}}",
+            StringContent content = new StringContent(
+                $"{{\"CompanyDB\": \"{loginData.CompanyDB}\", \"UserName\": \"{loginData.UserName}\", \"Password\": \"{loginData.Password}\"}}",
                 null,
                 "application/json");
-        
+
             request.Content = content;
-        
+
             HttpResponseMessage response = _httpClient.SendAsync(request).Result;
             response.EnsureSuccessStatusCode();
             Console.WriteLine("login:");
             Console.WriteLine(response.StatusCode);
-        
+
             // check the returned cookies from the server and throw them into our cookie jar
             CookieCollection cookies = _httpClientHandler.CookieContainer.GetCookies(new Uri(_sapRestApiBaseUrl()));
-            if (cookies == null)        {
+            if (cookies == null)
+            {
                 throw new Exception("No cookies received from SAP REST API, login failed.");
             }
-            
+
             SapCookieData cookieData = new SapCookieData
             {
                 ROUTEID = cookies["ROUTEID"]!.Value,
@@ -84,38 +88,70 @@ public class SapFunctions : ISapFunctions
 
     }
 
-    public List<SAPData> GetCustomerAddresses(SapLoginData loginData, SapCookieData cookieData)
+    public List<SAPData> GetCustomerAddresses(SapCookieData cookieData)
     {
-        string baseUrl = $"{_sapRestApiBaseUrl()}/Orders?$select=DocNum,CardCode,Address,Address2";
-        
-        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, baseUrl);
-        request.Headers.Add("Cookie", $"ROUTEID={cookieData.ROUTEID}; B1SESSION={cookieData.B1SESSION}");
-        StringContent content = new StringContent($"{{\"CompanyDB\": \"{loginData.CompanyDB}\", \"UserName\": \"{loginData.UserName}\", \"Password\": \"{loginData.Password}\"}}",
-            null,
-            "application/json");
-        
-        
-        request.Content = content;
-        HttpResponseMessage response = _httpClient.SendAsync(request).Result;
-        
-        
-        response.EnsureSuccessStatusCode();
-        string responseBody = response.Content.ReadAsStringAsync().Result;
+        List<SAPData> allSapData = new();
 
-        List<SapApiItem>? items = JObject.Parse(responseBody)["value"]!.ToObject<List<SapApiItem>>();
+        string baseUrl = _sapRestApiBaseUrl();
+        
+        string? currentUrl = $"{_sapRestApiBaseUrl()}Orders?$select=DocNum,CardCode,Address,Address2";
 
-        List<SAPData>? sapDataList = items?.Select(item => new SAPData
+        do
         {
-            DocNum = item.DocNum,
-            CardCode = item.CardCode,
-            BillToAddress = item.Address.Replace("\r", "").Replace("\n", " "),
-            SendToAddress = item.Address2?.Replace("\r", "").Replace("\n", " ")
-        }).ToList();
+            Console.WriteLine("Bulk import is at your service, we have imported this many addreses so far: " + allSapData.Count);
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, currentUrl);
+            request.Headers.Add("Cookie", $"ROUTEID={cookieData.ROUTEID}; B1SESSION={cookieData.B1SESSION}");
+            request.Headers.Add("B1S-PageSize", _oDataPagination.ToString());
 
-        return sapDataList ?? new List<SAPData>();
+            
+            HttpResponseMessage response = _httpClient.SendAsync(request).Result;
+            response.EnsureSuccessStatusCode();
+
+            string responseBody = response.Content.ReadAsStringAsync().Result;
+            JObject jsonObject = JObject.Parse(responseBody);
+
+            
+            List<SapApiItem>? items = jsonObject["value"]?.ToObject<List<SapApiItem>>();
+
+            if (items != null)
+            {
+                var mappedItems = items.Select(item => new SAPData
+                {
+                    DocNum = item.DocNum,
+                    CardCode = item.CardCode,
+                    BillToAddress = item.Address?.Replace("\r", "").Replace("\n", " "),
+                    SendToAddress = item.Address2?.Replace("\r", "").Replace("\n", " ")
+                });
+
+                allSapData.AddRange(mappedItems);
+            }
+
+            
+            string? nextLink = (string?)jsonObject["@odata.nextLink"];
+
+            if (!string.IsNullOrEmpty(nextLink))
+            {
+                if (nextLink.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    currentUrl = nextLink;
+                }
+                else
+                {
+                    currentUrl = $"{baseUrl}{nextLink}";
+                }
+            }
+            else
+            {
+                // Geen nextLink meer? Dan zijn we klaar.
+                currentUrl = null;
+            }
+        } while (!string.IsNullOrEmpty(currentUrl));
+
+        return allSapData;
     }
 
-    public void SaveCustomerAddresses(List<SAPData> sapDataList, ApplicationDbContext context)
+
+public void SaveCustomerAddresses(List<SAPData> sapDataList, ApplicationDbContext context)
     {
         foreach (var sapData in sapDataList)
         {

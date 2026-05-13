@@ -12,4 +12,6 @@ public interface ISapFunctions
     public void SaveCustomerAddresses(List<SAPData> sapDataList, ApplicationDbContext context);
     
     public void LogoutSAPRestApi(SapCookieData cookieData);
+    
+    public List<SAPData> GetCustomerAddressesOfToday(SapCookieData cookieData);
 }

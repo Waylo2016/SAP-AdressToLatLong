@@ -142,7 +142,6 @@ public class SapFunctions : ISapFunctions
             }
             else
             {
-                // Geen nextLink meer? Dan zijn we klaar.
                 currentUrl = null;
             }
         } while (!string.IsNullOrEmpty(currentUrl));
@@ -186,5 +185,18 @@ public void SaveCustomerAddresses(List<SAPData> sapDataList, ApplicationDbContex
             Console.WriteLine(e);
             throw;
         }
+    }
+
+    public List<SAPData> GetCustomerAddressesOfToday(SapCookieData cookieData)
+    {
+        var today = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
+        string? currentUrl = $"{_sapRestApiBaseUrl()}Orders?$select=DocNum,CardCode,Address,Address2&$filter=DocDate eq {today}";
+        
+        //TODO: finish calling the API with 'today' as a filter. this should only run if an env var is set that shows that the bulk import is done
+        // though this should also be possible with either a simple .conf or a small bit of data in the database (in a separate, nonrelated table to the existing database)
+        
+        throw new NotImplementedException();
+        
+        
     }
 }

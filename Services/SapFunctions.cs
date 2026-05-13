@@ -189,14 +189,37 @@ public void SaveCustomerAddresses(List<SAPData> sapDataList, ApplicationDbContex
 
     public List<SAPData> GetCustomerAddressesOfToday(SapCookieData cookieData)
     {
+        List<SAPData> allSapData = new();
+        
         var today = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
         string? currentUrl = $"{_sapRestApiBaseUrl()}Orders?$select=DocNum,CardCode,Address,Address2&$filter=DocDate eq {today}";
         
-        //TODO: finish calling the API with 'today' as a filter. this should only run if an env var is set that shows that the bulk import is done
-        // though this should also be possible with either a simple .conf or a small bit of data in the database (in a separate, nonrelated table to the existing database)
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, currentUrl);
+        request.Headers.Add("Cookie", $"ROUTEID={cookieData.ROUTEID}; B1SESSION={cookieData.B1SESSION}");
+        request.Headers.Add("B1S-PageSize", _oDataPagination.ToString());
         
-        throw new NotImplementedException();
+        HttpResponseMessage response = _httpClient.SendAsync(request).Result;
+        response.EnsureSuccessStatusCode();
+
+        string responseBody = response.Content.ReadAsStringAsync().Result;
+        JObject jsonObject = JObject.Parse(responseBody);
+
+            
+        List<SapApiItem>? items = jsonObject["value"]?.ToObject<List<SapApiItem>>();
+
+        if (items != null)
+        {
+            var mappedItems = items.Select(item => new SAPData
+            {
+                DocNum = item.DocNum,
+                CardCode = item.CardCode,
+                BillToAddress = item.Address?.Replace("\r", "").Replace("\n", " "),
+                SendToAddress = item.Address2?.Replace("\r", "").Replace("\n", " ")
+            });
+
+            allSapData.AddRange(mappedItems);
+        }
         
-        
+        return allSapData;
     }
 }

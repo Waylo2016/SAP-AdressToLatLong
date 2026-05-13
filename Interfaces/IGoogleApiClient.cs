@@ -3,7 +3,7 @@ using SAP_AdresToLatLong.Models;
 
 namespace SAP_AdresToLatLong.Interfaces;
 
-public interface IGoogleFunctions
+public interface IGoogleApiClient
 {
         
         Task<PostGeocodeData?> GetGeocodeDataAsync(SAPData sapData, ApplicationDbContext context);

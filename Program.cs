@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+
+using Microsoft.Extensions.Logging;
 using SAP_AdresToLatLong.Data;
 using SAP_AdresToLatLong.Helpers;
 using SAP_AdresToLatLong.Models;
@@ -12,17 +13,26 @@ class Program
     async static Task Main(string[] args)
     {
         
-        SapFunctions sapFunctions = new SapFunctions();
-        GoogleFunctions googleFunctions = new GoogleFunctions();
+        using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.AddConsole();
+            builder.SetMinimumLevel(LogLevel.Information); // show everything
+        });
+
+        var logger = loggerFactory.CreateLogger<SapApiClient>();
         
-        var connectionString = SecretParser.Build();
+        SapApiClient sapApiClient = new SapApiClient(logger);
+        GoogleApiClient googleApiClient = new GoogleApiClient();
+        GeocodeService geocodeService = new GeocodeService(googleApiClient);
+        
+        string connectionString = SecretParser.Build();
 
         await using var dbContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(connectionString)
             .Options
         );
 
-        var loginData = new SapLoginData
+        SapLoginData loginData = new SapLoginData
         {
             CompanyDB = Environment.GetEnvironmentVariable("SAP_SERVER")!,
             UserName = SecretParser.GetUsername(),
@@ -30,46 +40,30 @@ class Program
         };
         
         
-        SapCookieData cookieData = sapFunctions.LoginSAPRestApi(loginData);
+        SapCookieData cookieData = sapApiClient.LoginSAPRestApi(loginData);
         Console.WriteLine("Login successful");
 
         
-        List<SAPData>? customerAddresses = sapFunctions.GetCustomerAddresses(cookieData);
+        List<SAPData> customerAddresses = sapApiClient.GetCustomerAddresses(cookieData);
         Console.WriteLine("Customer addresses have been got");
         
-        // sapFunctions.SaveCustomerAddresses(customerAddresses!, dbContext);
-        // Console.WriteLine("Customer addresses saved");
-
-        var allSapData = customerAddresses;// Or fetch in chunks if 50k is too many for memory
-
-        foreach (var sapItem in allSapData)
-        {
-
-            // Console.WriteLine($"Adres opgehaald voor: {sapItem.DocNum}, {sapItem.CardCode} met adres: {sapItem.BillToAddress} en {sapItem.SendToAddress}");
-            
-            // // 1. Check if we already have this data to save money/time
-            // if (googleFunctions.CheckIfGeocodeDataExists(sapItem.DocNum, sapItem.CardCode, dbContext))
-            // {
-            //     continue; 
-            // }
-            //
-            // // 2. Call the API asynchronously
-            // var geocodeResult = await googleFunctions.GetGeocodeDataAsync(sapItem, dbContext);
-            //
-            // Console.WriteLine($"Geocode for DocNum: {sapItem.DocNum} completed: {geocodeResult.Latitude.ToString()}, {geocodeResult.Longitude.ToString()}");
-            // if (geocodeResult != null)
-            // {
-            //     // 3. Save result
-            //     await googleFunctions.SaveGeocodeDataAsync(geocodeResult, dbContext);
-            //     Console.WriteLine($"Saved geocode for DocNum: {sapItem.DocNum}");
-            // }
-            
-        }
+        sapApiClient.SaveCustomerAddresses(customerAddresses, dbContext);
+        Console.WriteLine("Customer addresses saved");
         
-        sapFunctions.LogoutSAPRestApi(cookieData);
+        sapApiClient.LogoutSAPRestApi(cookieData);
         Console.WriteLine("Logged out");
         
-        
+        // List<SAPData> ungeocoded;
+        // ungeocoded = await dbContext.SAPData
+        //     .Where(s => !dbContext.PostGeocodeData.Any(g => g.DocNum == s.DocNum))
+        //     .ToListAsync();
+
+        // List<PostGeocodeData?> results = await geocodeService.GetGeocodeDataBatchAsync(ungeocoded, dbContext);
+        //
+        // foreach (var result in results.Where(r => r != null))
+        // {
+        //     Console.WriteLine($"Geocode for DocNum: {result!.DocNum} — {result.Latitude}, {result.Longitude}");
+        // }
         
     }
 

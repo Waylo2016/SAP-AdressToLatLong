@@ -3,7 +3,7 @@ using SAP_AdresToLatLong.Models;
 
 namespace SAP_AdresToLatLong.Interfaces;
 
-public interface ISapFunctions
+public interface ISapApiClient
 {
     public SapCookieData LoginSAPRestApi(SapLoginData loginData);
     

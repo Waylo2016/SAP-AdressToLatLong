@@ -7,7 +7,7 @@ using SAP_AdresToLatLong.Models;
 
 namespace SAP_AdresToLatLong.Services;
 
-public class GoogleFunctions : IGoogleFunctions
+public class GoogleApiClient : IGoogleApiClient
 {
     private readonly string _googleApiLink = "https://geocode.googleapis.com/v4/geocode/address";
     private readonly string _googleApiKey = SecretParser.GetGeocodingApi();
@@ -21,6 +21,9 @@ public class GoogleFunctions : IGoogleFunctions
 
     public async Task<PostGeocodeData?> GetGeocodeDataAsync(SAPData sapData, ApplicationDbContext context)
     {
+        //TODO: set up rate limiting for the google API, rate limiting should be done by using a custom HttpClientHandler with a custom DelegatingHandler that implements a custom rate limiting strategy
+        //TODO: set up jitter for the google API to avoid being deemed a DDOS-attack by google
+        
         string url = BuildGoogleApiUrl(sapData.DocNum, context);
         
         HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);

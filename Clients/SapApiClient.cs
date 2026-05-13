@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Security;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using SAP_AdresToLatLong.Data;
 using SAP_AdresToLatLong.Interfaces;
@@ -7,15 +8,17 @@ using SAP_AdresToLatLong.Models;
 
 namespace SAP_AdresToLatLong.Services;
 
-public class SapFunctions : ISapFunctions
+public class SapApiClient : ISapApiClient
 {
     private readonly HttpClient _httpClient;
     private readonly HttpClientHandler _httpClientHandler;
+    private readonly ILogger<SapApiClient> _logger;
     private readonly string _sapRestApiVersion = "v2"; // change when using an updated SAP Service Layer
     private readonly int _oDataPagination = 100; // change this for more or less data per request on bulk import
 
-    public SapFunctions()
+    public SapApiClient(ILogger<SapApiClient> logger)
     {
+        _logger = logger;
         _httpClientHandler = new HttpClientHandler
         {
 
@@ -98,7 +101,6 @@ public class SapFunctions : ISapFunctions
 
         do
         {
-            Console.WriteLine("Bulk import is at your service, we have imported this many addreses so far: " + allSapData.Count);
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, currentUrl);
             request.Headers.Add("Cookie", $"ROUTEID={cookieData.ROUTEID}; B1SESSION={cookieData.B1SESSION}");
             request.Headers.Add("B1S-PageSize", _oDataPagination.ToString());
@@ -154,16 +156,32 @@ public void SaveCustomerAddresses(List<SAPData> sapDataList, ApplicationDbContex
     {
         foreach (var sapData in sapDataList)
         {
-            // Check if the record already exists in the database
-            bool exists = context.SAPData.Any(s => s.DocNum == sapData.DocNum && s.CardCode == sapData.CardCode);
-
-            if (!exists)
+            try
             {
-                context.SAPData.Add(sapData);
+                // Check if the record already exists in the database
+                bool exists = context.SAPData.Any(s => s.DocNum == sapData.DocNum && s.CardCode == sapData.CardCode);
+
+                if (!exists)
+                {
+                    context.SAPData.Add(sapData);
+                    
+                }
             }
+            catch (Exception e)
+            {
+                _logger.LogWarning($"Error staging SAP data, skipping record: {sapData.DocNum} - {sapData.CardCode}");
+            }
+           
         }
 
-        context.SaveChanges();
+        try
+        {
+            context.SaveChanges();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to commit SAP data batch to database");
+        }
     }
 
     public void LogoutSAPRestApi(SapCookieData cookieData)
